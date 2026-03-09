@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class AnimatedFaceBox extends StatefulWidget {
@@ -85,24 +87,30 @@ class _PremiumFaceBoxPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (boxes.isEmpty) return;
 
-    final scaleX = size.width / previewSize.width;
-    final scaleY = size.height / previewSize.height;
+    final scale = math.min(
+      size.width / previewSize.width,
+      size.height / previewSize.height,
+    );
+    final previewWidth = previewSize.width * scale;
+    final previewHeight = previewSize.height * scale;
+    final horizontalInset = (size.width - previewWidth) / 2.0;
+    final verticalInset = (size.height - previewHeight) / 2.0;
 
     for (final box in boxes) {
-      double left = box.left * scaleX;
-      double right = box.right * scaleX;
+      double left = (box.left * scale) + horizontalInset;
+      double right = (box.right * scale) + horizontalInset;
 
       if (isFrontCamera) {
-         final tmp = left;
-         left = size.width - right;
-         right = size.width - tmp;
+        final tmp = left;
+        left = size.width - right;
+        right = size.width - tmp;
       }
 
       final rect = Rect.fromLTRB(
         left,
-        box.top * scaleY,
+        (box.top * scale) + verticalInset,
         right,
-        box.bottom * scaleY,
+        (box.bottom * scale) + verticalInset,
       );
 
       // Save canvas state for scaling

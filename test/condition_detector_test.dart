@@ -178,7 +178,7 @@ void main() {
     );
 
     final result = detector.detect(metrics, probabilities: probabilities);
-    expect(result.emotion, EmotionState.tired);
+    expect(result.emotion, EmotionState.neutral);
   });
 
   test('does not override a clear happy model lead into sad', () {
@@ -257,6 +257,32 @@ void main() {
 
     final result = detector.detect(metrics, probabilities: probabilities);
     expect(result.emotion, EmotionState.stressed);
+  });
+
+  test('keeps moderate brow-raise faces out of stressed without strong geometry', () {
+    const metrics = FaceMetrics(
+      leftEyeOpenProbability: 0.82,
+      rightEyeOpenProbability: 0.80,
+      smileProbability: 0.03,
+      browTension: 0.20,
+      frownScore: 0.10,
+      browRaiseScore: 0.26,
+      headDownTiltDegrees: 4,
+      lightingScore: 0.55,
+    );
+
+    const probabilities = EmotionProbabilities(
+      happy: 0.03,
+      sad: 0.08,
+      surprised: 0.03,
+      fearful: 0.24,
+      angry: 0.48,
+      disgusted: 0.07,
+      neutral: 0.07,
+    );
+
+    final result = detector.detect(metrics, probabilities: probabilities);
+    expect(result.emotion, EmotionState.neutral);
   });
 
   test('prefers strong smile over a neutral leaning model', () {
@@ -575,7 +601,7 @@ void main() {
 
     final result = detector.detect(metrics, probabilities: probabilities);
     expect(result.lighting, LightingState.tooDim);
-    expect(result.emotion, EmotionState.tired);
+    expect(result.emotion, EmotionState.neutral);
   });
 
   test('uses neutral for dim weak sad cues', () {
@@ -602,7 +628,7 @@ void main() {
 
     final result = detector.detect(metrics, probabilities: probabilities);
     expect(result.lighting, LightingState.tooDim);
-    expect(result.emotion, EmotionState.tired);
+    expect(result.emotion, EmotionState.neutral);
   });
 
   test('uses neutral for dim weak stressed cues', () {

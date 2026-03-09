@@ -2,6 +2,10 @@
 
 This app is a take-home prototype for CCExtractor Flutter qualification work.
 
+## Demo
+
+- [Demo video (MP4)](demo/face_condition_demo.mp4)
+
 ## What it does
 
 - Classifies user state as: `tired`, `stressed`, `happy`, `sad`, `neutral`

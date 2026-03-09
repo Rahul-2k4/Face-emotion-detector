@@ -6,6 +6,7 @@ import '../models/face_metrics.dart';
 import '../services/mlkit_live_detector.dart';
 import '../theme/app_theme.dart';
 import '../widgets/animated_face_box.dart';
+import '../widgets/camera_preview_viewport.dart';
 import '../widgets/metrics_bottom_sheet.dart';
 import '../widgets/result_card.dart';
 import '../widgets/scanning_overlay.dart';
@@ -83,13 +84,11 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> with WidgetsBinding
               if (isCameraReady)
                 ColoredBox(
                   color: Colors.black,
-                  child: Center(
-                    child: AspectRatio(
+                  child: CameraPreviewViewport(
                       aspectRatio: camera.value.aspectRatio == 0
                           ? (3 / 4)
                           : camera.value.aspectRatio,
                       child: CameraPreview(camera),
-                    ),
                   ),
                 ),
                 

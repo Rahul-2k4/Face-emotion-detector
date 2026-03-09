@@ -62,8 +62,6 @@ class EmotionClassifier {
       return EmotionState.sad;
     }
 
-    // Emit neutral immediately if evidence is too weak or too ambiguous.
-    // Was 0.38 + margin 0.03 – too conservative, many real emotions fell through.
     if (best.value < 0.32 + thresholdBoost + dimThresholdBoost ||
         best.value - runnerUp < (lightingState == LightingState.tooDim ? 0.04 : 0.02)) {
       return EmotionState.neutral;
@@ -128,6 +126,7 @@ class EmotionClassifier {
     ].reduce((a, b) => a > b ? a : b);
     final avgEye = metrics.averageEyeOpen;
     final eyeClosed = (1.0 - avgEye).clamp(0.0, 1.0);
+    final tiredSignal = eyeClosed;
     final normalizedTilt = (metrics.headDownTiltDegrees / 30.0).clamp(0.0, 1.0);
     final lowSmile = (1.0 - metrics.smileProbability).clamp(0.0, 1.0);
     final lowFrown = (1.0 - metrics.frownScore).clamp(0.0, 1.0);
@@ -149,7 +148,6 @@ class EmotionClassifier {
     final sadModelLead =
         topLabel == BaseEmotionLabel.sad && topScore >= 0.38 && topMargin >= 0.08;
 
-    // Happy: emotion-model weight boosted from 0.22 to 0.28 (faster response)
     final happy = _clamp01(
       (metrics.smileProbability * 0.62) +
           (happyScore * 0.28) +
@@ -157,7 +155,6 @@ class EmotionClassifier {
           (lowFrown * 0.04),
     );
 
-    // Sad: boost model weight from 0.12 to 0.18
     final sad = _clamp01(
       (metrics.frownScore * 0.56) +
           (lowSmile * 0.18) +
@@ -166,7 +163,6 @@ class EmotionClassifier {
           (metrics.smileProbability * 0.18),
     );
 
-    // Stressed: boost model weight from 0.14 to 0.18
     final stressed = _clamp01(
       (metrics.browRaiseScore * 0.34) +
           (metrics.frownScore * 0.20) +
@@ -176,14 +172,8 @@ class EmotionClassifier {
           (happyScore * 0.10),
     );
 
-    // Tired: eye closure most important; relax weight slightly to catch
-    // partial tiredness. Add model neutral as a tiredness proxy.
     final tired = _clamp01(
-      (eyeClosed * 0.52) +
-          (normalizedTilt * 0.20) +
-          (lowSmile * 0.12) +
-          ((1.0 - happyScore) * 0.08) +
-          (probabilities.neutral * 0.08),
+      (eyeClosed * 0.90) + (normalizedTilt * 0.10),
     );
 
     final neutral = _clamp01(
@@ -226,27 +216,25 @@ class EmotionClassifier {
                     metrics.browRaiseScore <= 0.18
                 ? sad + 0.08 + (topMargin * 0.12)
                 : sad * (clearSmile ? 0.54 : 0.82);
+    final strongStressGeometry =
+        metrics.browRaiseScore >= 0.30 || metrics.frownScore >= 0.18;
     final adjustedStressed = stressed >= 0.36 + thresholdBoost &&
-            metrics.browRaiseScore >= 0.24 &&
+            strongStressGeometry &&
             metrics.smileProbability <= 0.14
         ? stressed +
             0.05 +
             (alertEyes ? 0.06 : 0.0) -
             (heavyEyes ? 0.10 : 0.0) -
             (metrics.browRaiseScore < 0.20 ? 0.08 : 0.0)
-        : stressed * (clearSmile ? 0.48 : 0.84);
-    // Tired: lower activation threshold (was avgEye ≤0.38, tiredSignal ≥0.40)
-    // Easier to detect partial tiredness (drooping eyes without full tilt).
+        : stressed *
+            (clearSmile
+                ? 0.48
+                : (!strongStressGeometry ? 0.70 : 0.84));
     final adjustedTired =
-        tired >= 0.36 &&
-            avgEye <= 0.45 &&
-            normalizedTilt >= 0.18 &&
+        tiredSignal >= (lightingState == LightingState.tooDim ? 0.62 : 0.55) &&
             metrics.frownScore < 0.26
         ? tired + 0.05
-        : tired *
-            ((heavyEyes && metrics.frownScore >= 0.24)
-                ? (normalizedTilt < 0.24 ? 0.62 : 0.76)
-                : 1.0);
+        : tired * 0.55;
     final adjustedNeutral = (clearSmile && adjustedHappy < 0.54
             ? neutral + 0.05
             : neutral) -
